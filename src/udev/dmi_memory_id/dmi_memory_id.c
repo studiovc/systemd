@@ -220,7 +220,7 @@ static void dmi_print_memory_size(
 static const char *dmi_memory_array_location(uint8_t code) {
         /* 7.17.1 */
         static const char *location[] = {
-                "Other", /* 0x01 */
+                [0x01] = "Other",
                 "Unknown",
                 "System Board Or Motherboard",
                 "ISA Add-on Card",
@@ -232,24 +232,24 @@ static const char *dmi_memory_array_location(uint8_t code) {
                 "NuBus" /* 0x0A */
         };
         static const char *location_0xA0[] = {
-                "PC-98/C20 Add-on Card", /* 0xA0 */
+                [0xA0] = "PC-98/C20 Add-on Card",
                 "PC-98/C24 Add-on Card",
                 "PC-98/E Add-on Card",
                 "PC-98/Local Bus Add-on Card",
                 "CXL Flexbus 1.0" /* 0xA4 */
         };
 
-        if (code >= 0x01 && code <= 0x0A)
-                return location[code - 0x01];
-        if (code >= 0xA0 && code <= 0xA4)
-                return location_0xA0[code - 0xA0];
+        if (code >= 0x01 && code < ELEMENTSOF(location))
+                return location[code];
+        if (code >= 0xA0 && code < ELEMENTSOF(location_0xA0))
+                return location_0xA0[code];
         return OUT_OF_SPEC_STR;
 }
 
 static const char *dmi_memory_array_ec_type(uint8_t code) {
         /* 7.17.3 */
         static const char *type[] = {
-                "Other", /* 0x01 */
+                [0x01] = "Other",
                 "Unknown",
                 "None",
                 "Parity",
@@ -258,8 +258,8 @@ static const char *dmi_memory_array_ec_type(uint8_t code) {
                 "CRC" /* 0x07 */
         };
 
-        if (code >= 0x01 && code <= 0x07)
-                return type[code - 0x01];
+        if (code >= 0x01 && code < ELEMENTSOF(type))
+                return type[code];
         return OUT_OF_SPEC_STR;
 }
 
@@ -313,7 +313,7 @@ static void dmi_memory_voltage_value(
 static const char *dmi_memory_device_form_factor(uint8_t code) {
         /* 7.18.1 */
         static const char *form_factor[] = {
-                "Other", /* 0x01 */
+                [0x01] = "Other",
                 "Unknown",
                 "SIMM",
                 "SIP",
@@ -331,8 +331,8 @@ static const char *dmi_memory_device_form_factor(uint8_t code) {
                 "Die" /* 0x10 */
         };
 
-        if (code >= 0x01 && code <= 0x10)
-                return form_factor[code - 0x01];
+        if (code >= 0x01 && code < ELEMENTSOF(form_factor))
+                return form_factor[code];
         return OUT_OF_SPEC_STR;
 }
 
@@ -346,7 +346,7 @@ static void dmi_memory_device_set(unsigned slot_num, uint8_t code) {
 static const char *dmi_memory_device_type(uint8_t code) {
         /* 7.18.2 */
         static const char *type[] = {
-                "Other", /* 0x01 */
+                [0x01] = "Other",
                 "Unknown",
                 "DRAM",
                 "EDRAM",
@@ -381,15 +381,15 @@ static const char *dmi_memory_device_type(uint8_t code) {
                 "HBM2" /* 0x21 */
         };
 
-        if (code >= 0x01 && code <= 0x21)
-                return type[code - 0x01];
+        if (code >= 0x01 && code < ELEMENTSOF(type))
+                return type[code];
         return OUT_OF_SPEC_STR;
 }
 
 static void dmi_memory_device_type_detail(unsigned slot_num, uint16_t code) {
         /* 7.18.3 */
         static const char *detail[] = {
-                "Other", /* 1 */
+                [1] = "Other",
                 "Unknown",
                 "Fast-paged",
                 "Static Column",
@@ -410,13 +410,14 @@ static void dmi_memory_device_type_detail(unsigned slot_num, uint16_t code) {
         if ((code & 0xFFFE) == 0) {
                 printf("MEMORY_DEVICE_%u_TYPE_DETAIL=%s\n", slot_num, "None");
         } else {
-                int i, off = 0;
+                long unsigned i;
+                int off = 0;
 
                 list[0] = '\0';
-                for (i = 1; i <= 15; i++)
+                for (i = 1; i < ELEMENTSOF(detail); i++)
                         if (code & (1 << i))
                                 off += sprintf(list + off, off ? " %s" : "%s",
-                                               detail[i - 1]);
+                                               detail[i]);
                 printf("MEMORY_DEVICE_%u_TYPE_DETAIL=%s\n", slot_num, list);
         }
 }
@@ -431,7 +432,7 @@ static void dmi_memory_device_speed(
 static void dmi_memory_technology(unsigned slot_num, uint8_t code) {
         /* 7.18.6 */
         static const char * const technology[] = {
-                "Other", /* 0x01 */
+                [0x01] = "Other",
                 "Unknown",
                 "DRAM",
                 "NVDIMM-N",
@@ -439,8 +440,8 @@ static void dmi_memory_technology(unsigned slot_num, uint8_t code) {
                 "NVDIMM-P",
                 "Intel Optane DC persistent memory" /* 0x07 */
         };
-        if (code >= 0x01 && code <= 0x07)
-                printf("MEMORY_DEVICE_%u_MEMORY_TECHNOLOGY=%s\n", slot_num, technology[code - 0x01]);
+        if (code >= 0x01 && code < ELEMENTSOF(technology))
+                printf("MEMORY_DEVICE_%u_MEMORY_TECHNOLOGY=%s\n", slot_num, technology[code]);
         else
                 printf("MEMORY_DEVICE_%u_MEMORY_TECHNOLOGY=%s\n", slot_num, OUT_OF_SPEC_STR);
 }
@@ -448,7 +449,7 @@ static void dmi_memory_technology(unsigned slot_num, uint8_t code) {
 static void dmi_memory_operating_mode_capability(unsigned slot_num, uint16_t code) {
         /* 7.18.7 */
         static const char * const mode[] = {
-                "Other", /* 1 */
+                [1] = "Other",
                 "Unknown",
                 "Volatile memory",
                 "Byte-accessible persistent memory",
@@ -457,13 +458,14 @@ static void dmi_memory_operating_mode_capability(unsigned slot_num, uint16_t cod
         char list[99]; /* Update length if you touch the array above */
 
         if ((code & 0xFFFE) != 0) {
-                int i, off = 0;
+                long unsigned i;
+                int off = 0;
 
                 list[0] = '\0';
-                for (i = 1; i <= 5; i++)
+                for (i = 1; i < ELEMENTSOF(mode); i++)
                         if (code & (1 << i))
                                 off += sprintf(list + off, off ? " %s" : "%s",
-                                               mode[i - 1]);
+                                               mode[i]);
                 printf("MEMORY_DEVICE_%u_MEMORY_OPERATING_MODE_CAPABILITY=%s\n", slot_num, list);
         }
 }
