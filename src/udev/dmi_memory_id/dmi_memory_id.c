@@ -632,12 +632,12 @@ static void dmi_table_decode(uint8_t *buf, uint32_t len, uint16_t num, uint32_t 
 
                 /* Look for the next handle */
                 next = data + h.length;
-                while ((unsigned long)(next - buf + 1) < len && (next[0] != 0 || next[1] != 0))
+                while ((size_t)(next - buf + 1) < len && (next[0] != 0 || next[1] != 0))
                         next++;
                 next += 2;
 
                 /* Make sure the whole structure fits in the table */
-                if ((unsigned long)(next - buf) > len) {
+                if ((size_t)(next - buf) > len) {
                         data = next;
                         break;
                 }
