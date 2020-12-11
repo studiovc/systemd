@@ -405,20 +405,20 @@ static void dmi_memory_device_type_detail(unsigned slot_num, uint16_t code) {
                 "Unbuffered (Unregistered)",
                 "LRDIMM"  /* 15 */
         };
-        char list[172]; /* Update length if you touch the array above */
 
         if ((code & 0xFFFE) == 0) {
                 printf("MEMORY_DEVICE_%u_TYPE_DETAIL=%s\n", slot_num, "None");
         } else {
                 long unsigned i;
-                int off = 0;
+                bool first_element = true;
 
-                list[0] = '\0';
+                printf("MEMORY_DEVICE_%u_TYPE_DETAIL=", slot_num);
                 for (i = 1; i < ELEMENTSOF(detail); i++)
-                        if (code & (1 << i))
-                                off += sprintf(list + off, off ? " %s" : "%s",
-                                               detail[i]);
-                printf("MEMORY_DEVICE_%u_TYPE_DETAIL=%s\n", slot_num, list);
+                        if (code & (1 << i)) {
+                                printf("%s%s", first_element ? "" : " ", detail[i]);
+                                first_element = false;
+                        }
+                printf("\n");
         }
 }
 
@@ -455,18 +455,18 @@ static void dmi_memory_operating_mode_capability(unsigned slot_num, uint16_t cod
                 "Byte-accessible persistent memory",
                 "Block-accessible persistent memory" /* 5 */
         };
-        char list[99]; /* Update length if you touch the array above */
 
         if ((code & 0xFFFE) != 0) {
                 long unsigned i;
-                int off = 0;
+                bool first_element = true;
 
-                list[0] = '\0';
+                printf("MEMORY_DEVICE_%u_MEMORY_OPERATING_MODE_CAPABILITY=", slot_num);
                 for (i = 1; i < ELEMENTSOF(mode); i++)
-                        if (code & (1 << i))
-                                off += sprintf(list + off, off ? " %s" : "%s",
-                                               mode[i]);
-                printf("MEMORY_DEVICE_%u_MEMORY_OPERATING_MODE_CAPABILITY=%s\n", slot_num, list);
+                        if (code & (1 << i)) {
+                                printf("%s%s", first_element ? "" : " ", mode[i]);
+                                first_element = false;
+                        }
+                printf("\n");
         }
 }
 
