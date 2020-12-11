@@ -508,8 +508,7 @@ static void dmi_decode(const struct dmi_header *h) {
         /*
          * Note: DMI types 37 and 42 are untested
          */
-        switch (h->type)
-        {
+        switch (h->type) {
         case 16: /* 7.17 Physical Memory Array */
                 log_debug("Physical Memory Array");
                 if (h->length < 0x0F) break;
@@ -595,13 +594,6 @@ static void dmi_decode(const struct dmi_header *h) {
         }
 }
 
-static void to_dmi_header(struct dmi_header *h, uint8_t *data) {
-        h->type = data[0];
-        h->length = data[1];
-        h->handle = WORD(data + 2);
-        h->data = data;
-}
-
 static void dmi_table_decode(uint8_t *buf, uint32_t len, uint16_t num, uint32_t flags) {
         uint8_t *data;
         int i = 0;
@@ -610,10 +602,14 @@ static void dmi_table_decode(uint8_t *buf, uint32_t len, uint16_t num, uint32_t 
         /* 4 is the length of an SMBIOS structure header */
         while ((i < num || !num) && data + 4 <= buf + len) {
                 uint8_t *next;
-                struct dmi_header h;
-                int display;
+                bool display;
+                struct dmi_header h = (struct dmi_header) {
+                        .type = data[0],
+                        .length = data[1],
+                        .handle = WORD(data + 2),
+                        .data = data
+                };
 
-                to_dmi_header(&h, data);
                 display = (!(h.type == 126 || h.type == 127));
 
                 /*
