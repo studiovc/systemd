@@ -115,18 +115,18 @@ struct dmi_header
 typedef struct {
         uint32_t h;
         uint32_t l;
-} u64;
+} ULargeInteger;
 #else
 typedef struct {
         uint32_t l;
         uint32_t h;
-} u64;
+} ULargeInteger;
 #endif
 
 #if defined(ALIGNMENT_WORKAROUND) || __BYTE_ORDER == __BIG_ENDIAN
-static inline u64 U64(uint32_t low, uint32_t high)
+static inline ULargeInteger to_ularge_integer(uint32_t low, uint32_t high)
 {
-        u64 self;
+        ULargeInteger self;
 
         self.l = low;
         self.h = high;
@@ -142,11 +142,11 @@ static inline u64 U64(uint32_t low, uint32_t high)
 #if defined(ALIGNMENT_WORKAROUND) || __BYTE_ORDER == __BIG_ENDIAN
 #define WORD(x) (uint16_t)((x)[0] + ((x)[1] << 8))
 #define DWORD(x) (uint32_t)((x)[0] + ((x)[1] << 8) + ((x)[2] << 16) + ((x)[3] << 24))
-#define QWORD(x) (U64(DWORD(x), DWORD(x + 4)))
+#define QWORD(x) (to_ularge_integer(DWORD(x), DWORD(x + 4)))
 #else /* ALIGNMENT_WORKAROUND || BIGENDIAN */
 #define WORD(x) (uint16_t)(*(const uint16_t *)(x))
 #define DWORD(x) (uint32_t)(*(const uint32_t *)(x))
-#define QWORD(x) (*(const u64 *)(x))
+#define QWORD(x) (*(const ULargeInteger *)(x))
 #endif /* ALIGNMENT_WORKAROUND || BIGENDIAN */
 
 static int checksum(const uint8_t *buf, size_t len) {
@@ -199,7 +199,7 @@ typedef enum {
 /* shift is 0 if the value is in bytes, 1 if it is in kilobytes */
 static void dmi_print_memory_size(
                 const char *attr_prefix, const char *attr_suffix,
-                int slot_num, u64 code, MemorySizeUnit unit) {
+                int slot_num, ULargeInteger code, MemorySizeUnit unit) {
         uint64_t capacity;
 
         capacity = code.h;
@@ -284,7 +284,7 @@ static void dmi_memory_device_size(unsigned slot_num, uint16_t code) {
         } else if (code == 0xFFFF) {
                 return;
         } else {
-                u64 s = { .l = code & 0x7FFF };
+                ULargeInteger s = { .l = code & 0x7FFF };
                 if (!(code & 0x8000))
                         s.l <<= 10;
                 dmi_print_memory_size("MEMORY_DEVICE", "SIZE", slot_num, s, MEMORY_SIZE_UNIT_KB);
@@ -491,7 +491,7 @@ static void dmi_memory_product_id(
 
 static void dmi_memory_size(
                 const char *attr_prefix, const char *attr_suffix,
-                unsigned slot_num, u64 code) {
+                unsigned slot_num, ULargeInteger code) {
         /* 7.18.12 */
         /* 7.18.13 */
         if ((code.h == 0xFFFFFFFF && code.l == 0xFFFFFFFF) ||
@@ -525,7 +525,7 @@ static void dmi_decode(const struct dmi_header *h) {
                         if (h->length >= 0x17)
                                 dmi_print_memory_size("MEMORY_ARRAY", "MAX_CAPACITY", -1, QWORD(data + 0x0F), MEMORY_SIZE_UNIT_BYTES);
                 } else {
-                        u64 capacity;
+                        ULargeInteger capacity;
 
                         capacity.h = 0;
                         capacity.l = DWORD(data + 0x07);
@@ -680,7 +680,7 @@ static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem
 
 /* Same thing for SMBIOS3 entry points */
 static int smbios3_decode(uint8_t *buf, const char *devmem, uint32_t flags) {
-        u64 offset;
+        ULargeInteger offset;
 
         /* Don't let checksum run beyond the buffer */
         if (buf[0x06] > 0x20) {
