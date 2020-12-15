@@ -79,43 +79,12 @@ struct dmi_header
 };
 
 /*
- * You may use the following defines to adjust the type definitions
- * depending on the architecture:
- * - Define ALIGNMENT_WORKAROUND if your system doesn't support
- *   non-aligned memory access. In this case, we use a slower, but safer,
- *   memory access method. This should be done automatically in config.h
- *   for architectures which need it.
- */
-
-#if __BYTE_ORDER == __BIG_ENDIAN
-typedef struct {
-        uint32_t h;
-        uint32_t l;
-} ULargeInteger;
-#else
-typedef struct {
-        uint32_t l;
-        uint32_t h;
-} ULargeInteger;
-#endif
-
-static inline ULargeInteger to_ularge_integer(uint32_t low, uint32_t high)
-{
-        ULargeInteger self;
-
-        self.l = low;
-        self.h = high;
-
-        return self;
-}
-
-/*
  * Per SMBIOS v2.8.0 and later, all structures assume a little-endian
  * ordering convention.
  */
 #define WORD(x) (unaligned_read_le16(x))
 #define DWORD(x) (unaligned_read_le32(x))
-#define QWORD(x) (to_ularge_integer(DWORD(x), DWORD(x + 4)))
+#define QWORD(x) (unaligned_read_le64(x))
 
 static bool verify_checksum(const uint8_t *buf, size_t len) {
         uint8_t sum = 0;
@@ -167,18 +136,14 @@ typedef enum {
 /* shift is 0 if the value is in bytes, 1 if it is in kilobytes */
 static void dmi_print_memory_size(
                 const char *attr_prefix, const char *attr_suffix,
-                int slot_num, ULargeInteger code, MemorySizeUnit unit) {
-        uint64_t capacity;
-
-        capacity = code.h;
-        capacity = capacity << 32 | code.l;
+                int slot_num, uint64_t code, MemorySizeUnit unit) {
         if (unit == MEMORY_SIZE_UNIT_KB)
-                capacity = capacity << 10;
+                code = code << 10;
 
         if (slot_num >= 0)
-                printf("%s_%u_%s=%"PRIu64"\n", attr_prefix, slot_num, attr_suffix, capacity);
+                printf("%s_%u_%s=%"PRIu64"\n", attr_prefix, slot_num, attr_suffix, code);
         else
-                printf("%s_%s=%"PRIu64"\n", attr_prefix, attr_suffix, capacity);
+                printf("%s_%s=%"PRIu64"\n", attr_prefix, attr_suffix, code);
 }
 
 /*
@@ -252,9 +217,9 @@ static void dmi_memory_device_size(unsigned slot_num, uint16_t code) {
         } else if (code == 0xFFFF) {
                 return;
         } else {
-                ULargeInteger s = { .l = code & 0x7FFF };
+                uint64_t s = code & 0x7FFF;
                 if (!(code & 0x8000))
-                        s.l <<= 10;
+                        s <<= 10;
                 dmi_print_memory_size("MEMORY_DEVICE", "SIZE", slot_num, s, MEMORY_SIZE_UNIT_KB);
         }
 }
@@ -457,11 +422,11 @@ static void dmi_memory_product_id(
 
 static void dmi_memory_size(
                 const char *attr_prefix, const char *attr_suffix,
-                unsigned slot_num, ULargeInteger code) {
+                unsigned slot_num, uint64_t code) {
         /* 7.18.12 */
         /* 7.18.13 */
-        if ((code.h == 0xFFFFFFFFLU && code.l == 0xFFFFFFFFLU) ||
-            (code.h == 0x0 && code.l == 0x0))
+        if ((code == 0xFFFFFFFFFFFFFFFFLU) ||
+            (code == 0x0))
                 return;
         dmi_print_memory_size(attr_prefix, attr_suffix, slot_num, code, MEMORY_SIZE_UNIT_BYTES);
 }
@@ -494,10 +459,9 @@ static void dmi_decode(const struct dmi_header *h) {
                         if (h->length >= 0x17)
                                 dmi_print_memory_size("MEMORY_ARRAY", "MAX_CAPACITY", -1, QWORD(data + 0x0F), MEMORY_SIZE_UNIT_BYTES);
                 } else {
-                        ULargeInteger capacity;
+                        uint64_t capacity;
 
-                        capacity.h = 0;
-                        capacity.l = DWORD(data + 0x07);
+                        capacity = DWORD(data + 0x07);
                         dmi_print_memory_size("MEMORY_ARRAY", "MAX_CAPACITY", -1, capacity, MEMORY_SIZE_UNIT_KB);
                 }
                 printf("MEMORY_ARRAY_NUM_DEVICES=%u\n", WORD(data + 0x0D));
@@ -669,7 +633,7 @@ static void dmi_table(int64_t base, uint32_t len, uint16_t num, const char *devm
 
 /* Same thing for SMBIOS3 entry points */
 static int smbios3_decode(uint8_t *buf, const char *devmem, bool no_file_offset) {
-        ULargeInteger offset;
+        uint64_t offset;
 
         /* Don't let checksum run beyond the buffer */
         if (buf[0x06] > 0x20) {
@@ -682,13 +646,12 @@ static int smbios3_decode(uint8_t *buf, const char *devmem, bool no_file_offset)
                 return 0;
 
         offset = QWORD(buf + 0x10);
-        if (!no_file_offset && offset.h && sizeof(int64_t) < 8) {
+        if (!no_file_offset && (offset >> 32) != 0 && sizeof(int64_t) < 8) {
                 log_error("64-bit addresses not supported, sorry.");
                 return 0;
         }
 
-        dmi_table(((int64_t)offset.h << 32) | offset.l,
-                        DWORD(buf + 0x0C), 0, devmem, true, no_file_offset);
+        dmi_table(offset, DWORD(buf + 0x0C), 0, devmem, true, no_file_offset);
 
         return 1;
 }
