@@ -60,8 +60,6 @@
 static bool arg_no_file_offset = false;
 static const char *source_file = NULL;
 
-#define FLAG_STOP_AT_EOT        (1 << 1)
-
 #define OUT_OF_SPEC_STR "<OUT OF SPEC>"
 #define SYS_FIRMWARE_DIR "/sys/firmware/dmi/tables"
 #define SYS_ENTRY_FILE SYS_FIRMWARE_DIR "/smbios_entry_point"
@@ -574,7 +572,7 @@ static void dmi_decode(const struct dmi_header *h) {
         }
 }
 
-static void dmi_table_decode(uint8_t *buf, uint32_t len, uint16_t num, uint32_t flags) {
+static void dmi_table_decode(uint8_t *buf, uint32_t len, uint16_t num, bool stop_at_eot) {
         uint8_t *data;
         int i = 0;
 
@@ -624,12 +622,12 @@ static void dmi_table_decode(uint8_t *buf, uint32_t len, uint16_t num, uint32_t 
                 data = next;
 
                 /* SMBIOS v3 requires stopping at this marker */
-                if (h.type == 127 && (flags & FLAG_STOP_AT_EOT))
+                if (h.type == 127 && stop_at_eot)
                         break;
         }
 }
 
-static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem, uint32_t flags) {
+static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem, bool stop_at_eot) {
         _cleanup_free_ uint8_t *buf = NULL;
         size_t size;
         int r;
@@ -651,7 +649,7 @@ static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem
         }
 
         len = size;
-        dmi_table_decode(buf, len, num, flags);
+        dmi_table_decode(buf, len, num, stop_at_eot);
 }
 
 /* Same thing for SMBIOS3 entry points */
@@ -675,7 +673,7 @@ static int smbios3_decode(uint8_t *buf, const char *devmem) {
         }
 
         dmi_table(((off_t)offset.h << 32) | offset.l,
-                        DWORD(buf + 0x0C), 0, devmem, FLAG_STOP_AT_EOT);
+                        DWORD(buf + 0x0C), 0, devmem, true);
 
         return 1;
 }
@@ -694,7 +692,7 @@ static int smbios_decode(uint8_t *buf, const char *devmem) {
                 return 0;
 
         dmi_table(DWORD(buf + 0x18), WORD(buf + 0x16), WORD(buf + 0x1C),
-                  devmem, 0);
+                  devmem, false);
 
         return 1;
 }
@@ -704,7 +702,7 @@ static int legacy_decode(uint8_t *buf, const char *devmem) {
                 return 0;
 
         dmi_table(DWORD(buf + 0x08), WORD(buf + 0x06), WORD(buf + 0x0C),
-                  devmem, 0);
+                  devmem, false);
 
         return 1;
 }
