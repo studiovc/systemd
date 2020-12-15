@@ -755,7 +755,7 @@ static int run(int argc, char* const* argv) {
 
         r = parse_argv(argc, argv);
         if (r < 0)
-                return EXIT_FAILURE;
+                return r;
 
         /* Read from dump if so instructed */
         r = read_full_file_full(AT_FDCWD,
