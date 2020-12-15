@@ -57,7 +57,7 @@
 
 #define SUPPORTED_SMBIOS_VER 0x030300
 
-static const char *source_file = NULL;
+static const char *arg_source_file = NULL;
 
 #define OUT_OF_SPEC_STR "<OUT OF SPEC>"
 #define SYS_FIRMWARE_DIR "/sys/firmware/dmi/tables"
@@ -722,7 +722,7 @@ static int parse_argv(int argc, char * const *argv) {
 
                 switch (option) {
                 case 'F':
-                        source_file = optarg;
+                        arg_source_file = optarg;
                         break;
                 case 'h':
                         printf("Usage: %s [options]\n"
@@ -759,27 +759,26 @@ static int run(int argc, char* const* argv) {
 
         /* Read from dump if so instructed */
         r = read_full_file_full(AT_FDCWD,
-                                source_file ? source_file : SYS_ENTRY_FILE,
+                                arg_source_file ?: SYS_ENTRY_FILE,
                                 0, 0x20, 0, NULL, (char **) &buf, &size);
         if (r < 0) {
-                return log_full_errno(!source_file && r == -ENOENT ? LOG_DEBUG : LOG_ERR,
+                return log_full_errno(!arg_source_file && r == -ENOENT ? LOG_DEBUG : LOG_ERR,
                                       r, "Reading \"%s\" failed: %m",
-                                      source_file ? source_file : SYS_ENTRY_FILE);
-                return EXIT_FAILURE;
+                                      arg_source_file ?: SYS_ENTRY_FILE);
         }
-        if (!source_file) {
-                source_file = SYS_TABLE_FILE;
+        if (!arg_source_file) {
+                arg_source_file = SYS_TABLE_FILE;
                 no_file_offset = true;
         }
 
         if (size >= 24 && memcmp(buf, "_SM3_", 5) == 0) {
-                if (smbios3_decode(buf, source_file, no_file_offset))
+                if (smbios3_decode(buf, arg_source_file, no_file_offset))
                         found++;
         } else if (size >= 31 && memcmp(buf, "_SM_", 4) == 0) {
-                if (smbios_decode(buf, source_file, no_file_offset))
+                if (smbios_decode(buf, arg_source_file, no_file_offset))
                         found++;
         } else if (size >= 15 && memcmp(buf, "_DMI_", 5) == 0) {
-                if (legacy_decode(buf, source_file, no_file_offset))
+                if (legacy_decode(buf, arg_source_file, no_file_offset))
                         found++;
         }
 
