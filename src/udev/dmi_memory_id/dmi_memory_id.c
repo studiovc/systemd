@@ -386,7 +386,7 @@ static void dmi_memory_device_type_detail(unsigned slot_num, uint16_t code) {
         if ((code & 0xFFFE) == 0) {
                 printf("MEMORY_DEVICE_%u_TYPE_DETAIL=%s\n", slot_num, "None");
         } else {
-                long unsigned i;
+                size_t i;
                 bool first_element = true;
 
                 printf("MEMORY_DEVICE_%u_TYPE_DETAIL=", slot_num);
@@ -432,7 +432,7 @@ static void dmi_memory_operating_mode_capability(unsigned slot_num, uint16_t cod
         };
 
         if ((code & 0xFFFE) != 0) {
-                long unsigned i;
+                size_t i;
                 bool first_element = true;
 
                 printf("MEMORY_DEVICE_%u_MEMORY_OPERATING_MODE_CAPABILITY=", slot_num);
