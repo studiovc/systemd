@@ -469,7 +469,7 @@ static void dmi_memory_size(
                 unsigned slot_num, ULargeInteger code) {
         /* 7.18.12 */
         /* 7.18.13 */
-        if ((code.h == 0xFFFFFFFF && code.l == 0xFFFFFFFF) ||
+        if ((code.h == 0xFFFFFFFFLU && code.l == 0xFFFFFFFFLU) ||
             (code.h == 0x0 && code.l == 0x0))
                 return;
         dmi_print_memory_size(attr_prefix, attr_suffix, slot_num, code, MEMORY_SIZE_UNIT_BYTES);
