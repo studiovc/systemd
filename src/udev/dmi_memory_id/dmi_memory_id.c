@@ -209,7 +209,7 @@ static const char *dmi_memory_array_location(uint8_t code) {
                 "NuBus" /* 0x0A */
         };
         static const char *location_0xA0[] = {
-                [0xA0] = "PC-98/C20 Add-on Card",
+                "PC-98/C20 Add-on Card",
                 "PC-98/C24 Add-on Card",
                 "PC-98/E Add-on Card",
                 "PC-98/Local Bus Add-on Card",
@@ -218,8 +218,8 @@ static const char *dmi_memory_array_location(uint8_t code) {
 
         if (code < ELEMENTSOF(location) && code[location])
                 return location[code];
-        if (code >= 0xA0 && code < ELEMENTSOF(location_0xA0))
-                return location_0xA0[code];
+        if (code >= 0xA0 && code < (ELEMENTSOF(location_0xA0) + 0xA0))
+                return location_0xA0[code - 0xA0];
         return OUT_OF_SPEC_STR;
 }
 
