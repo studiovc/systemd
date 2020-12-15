@@ -52,6 +52,7 @@
 #include "alloc-util.h"
 #include "build.h"
 #include "fileio.h"
+#include "main-func.h"
 #include "udev-util.h"
 
 #define SUPPORTED_SMBIOS_VER 0x030300
@@ -60,6 +61,7 @@
 #define FLAG_STOP_AT_EOT        (1 << 1)
 #define FLAG_FROM_DUMP          (1 << 2)
 static uint32_t opt_flags = 0;
+const char *dump_file = NULL;
 
 #define OUT_OF_SPEC_STR "<OUT OF SPEC>"
 #define SYS_FIRMWARE_DIR "/sys/firmware/dmi/tables"
@@ -708,25 +710,13 @@ static int legacy_decode(uint8_t *buf, const char *devmem, uint32_t flags) {
         return 1;
 }
 
-int main(int argc, char * const argv[]) {
+static int parse_argv(int argc, char * const *argv) {
         static const struct option options[] = {
                 { "help", no_argument, NULL, 'h' },
                 { "from-dump", required_argument, NULL, 'F' },
                 { "version", no_argument, NULL, 'V' },
                 {}
         };
-        const char *dump_file = NULL;
-
-        int ret = 0;                /* Returned value */
-        int found = 0;
-        size_t size;
-        _cleanup_free_ uint8_t *buf = NULL;
-        uint32_t flags = 0;
-
-        log_set_target(LOG_TARGET_AUTO);
-        udev_parse_config();
-        log_parse_environment();
-        log_open();
 
         for (;;) {
                 int option;
@@ -745,14 +735,33 @@ int main(int argc, char * const argv[]) {
                                " -F,--from-dump FILE   read DMI information from a binary file\n"
                                " -h,--help             print this help text\n\n",
                                program_invocation_short_name);
-                        exit(EXIT_SUCCESS);
+                        return 0;
                 case 'V':
                         printf("%s\n", GIT_VERSION);
-                        exit(EXIT_SUCCESS);
+                        return 0;
                 case '?':
-                        return -1;
+                        return -EINVAL;
                 }
         }
+
+        return 0;
+}
+
+static int run(int argc, char* const* argv) {
+        int r = 0;
+        int found = 0;
+        size_t size;
+        _cleanup_free_ uint8_t *buf = NULL;
+        uint32_t flags = 0;
+
+        log_set_target(LOG_TARGET_AUTO);
+        udev_parse_config();
+        log_parse_environment();
+        log_open();
+
+        r = parse_argv(argc, argv);
+        if (r < 0)
+                return EXIT_FAILURE;
 
         /* Read from dump if so instructed */
         if (read_full_file_full(AT_FDCWD,
@@ -779,7 +788,9 @@ int main(int argc, char * const argv[]) {
         }
 
         if (!found)
-                ret = EXIT_FAILURE;
+                r = EXIT_FAILURE;
 
-        return ret;
+        return r;
 }
+
+DEFINE_MAIN_FUNCTION(run);
