@@ -418,10 +418,8 @@ static void dmi_memory_technology(unsigned slot_num, uint8_t code) {
                 "NVDIMM-P",
                 "Intel Optane DC persistent memory" /* 0x07 */
         };
-        if (code >= 0x01 && code < ELEMENTSOF(technology))
-                printf("MEMORY_DEVICE_%u_MEMORY_TECHNOLOGY=%s\n", slot_num, technology[code]);
-        else
-                printf("MEMORY_DEVICE_%u_MEMORY_TECHNOLOGY=%s\n", slot_num, OUT_OF_SPEC_STR);
+        printf("MEMORY_DEVICE_%u_MEMORY_TECHNOLOGY=%s\n", slot_num,
+                        code >= 0x01 && code < ELEMENTSOF(technology) ? technology[code] : OUT_OF_SPEC_STR);
 }
 
 static void dmi_memory_operating_mode_capability(unsigned slot_num, uint16_t code) {
