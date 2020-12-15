@@ -47,7 +47,6 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <inttypes.h>
-#define _GNU_SOURCE
 #include <errno.h>
 
 #include "alloc-util.h"
