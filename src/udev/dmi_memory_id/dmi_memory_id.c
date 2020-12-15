@@ -53,6 +53,7 @@
 #include "build.h"
 #include "fileio.h"
 #include "main-func.h"
+#include "unaligned.h"
 #include "udev-util.h"
 
 #define SUPPORTED_SMBIOS_VER 0x030300
@@ -86,8 +87,6 @@ struct dmi_header
  *   for architectures which need it.
  */
 
-#include <endian.h>
-
 #if __BYTE_ORDER == __BIG_ENDIAN
 typedef struct {
         uint32_t h;
@@ -100,7 +99,6 @@ typedef struct {
 } ULargeInteger;
 #endif
 
-#if defined(ALIGNMENT_WORKAROUND) || __BYTE_ORDER == __BIG_ENDIAN
 static inline ULargeInteger to_ularge_integer(uint32_t low, uint32_t high)
 {
         ULargeInteger self;
@@ -110,21 +108,14 @@ static inline ULargeInteger to_ularge_integer(uint32_t low, uint32_t high)
 
         return self;
 }
-#endif
 
 /*
  * Per SMBIOS v2.8.0 and later, all structures assume a little-endian
  * ordering convention.
  */
-#if defined(ALIGNMENT_WORKAROUND) || __BYTE_ORDER == __BIG_ENDIAN
-#define WORD(x) (uint16_t)((x)[0] + ((x)[1] << 8))
-#define DWORD(x) (uint32_t)((x)[0] + ((x)[1] << 8) + ((x)[2] << 16) + ((x)[3] << 24))
+#define WORD(x) (unaligned_read_le16(x))
+#define DWORD(x) (unaligned_read_le32(x))
 #define QWORD(x) (to_ularge_integer(DWORD(x), DWORD(x + 4)))
-#else /* ALIGNMENT_WORKAROUND || BIGENDIAN */
-#define WORD(x) (uint16_t)(*(const uint16_t *)(x))
-#define DWORD(x) (uint32_t)(*(const uint32_t *)(x))
-#define QWORD(x) (*(const ULargeInteger *)(x))
-#endif /* ALIGNMENT_WORKAROUND || BIGENDIAN */
 
 static bool verify_checksum(const uint8_t *buf, size_t len) {
         uint8_t sum = 0;
