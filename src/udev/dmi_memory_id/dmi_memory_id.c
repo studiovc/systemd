@@ -70,8 +70,7 @@ static const char *arg_source_file = NULL;
 #define ALIGNMENT_WORKAROUND
 #endif
 
-struct dmi_header
-{
+struct dmi_header {
         uint8_t type;
         uint8_t length;
         uint16_t handle;
