@@ -268,7 +268,7 @@ static void dmi_memory_device_set(unsigned slot_num, uint8_t code) {
         if (code == 0xFF)
                 printf("MEMORY_DEVICE_%u_SET=%s\n", slot_num, "Unknown");
         else if (code != 0)
-                printf("MEMORY_DEVICE_%u_SET=%u\n", slot_num, code);
+                printf("MEMORY_DEVICE_%u_SET=%"PRIu8"\n", slot_num, code);
 }
 
 static const char *dmi_memory_device_type(uint8_t code) {
@@ -632,7 +632,7 @@ static int smbios3_decode(uint8_t *buf, const char *devmem, bool no_file_offset)
 
         /* Don't let checksum run beyond the buffer */
         if (buf[0x06] > 0x20) {
-                log_error("Entry point length too large (%u bytes, expected %u).",
+                log_error("Entry point length too large (%"PRIu8" bytes, expected %"PRIu8").",
                           (unsigned)buf[0x06], 0x18U);
                 return 0;
         }
@@ -654,8 +654,8 @@ static int smbios3_decode(uint8_t *buf, const char *devmem, bool no_file_offset)
 static int smbios_decode(uint8_t *buf, const char *devmem, bool no_file_offset) {
         /* Don't let checksum run beyond the buffer */
         if (buf[0x05] > 0x20) {
-                log_error("Entry point length too large (%u bytes, expected %u).",
-                          (unsigned)buf[0x05], 0x1FU);
+                log_error("Entry point length too large (%"PRIu8" bytes, expected %u).",
+                          buf[0x05], 0x1FU);
                 return 0;
         }
 
