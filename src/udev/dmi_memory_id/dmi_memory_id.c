@@ -126,13 +126,13 @@ static inline ULargeInteger to_ularge_integer(uint32_t low, uint32_t high)
 #define QWORD(x) (*(const ULargeInteger *)(x))
 #endif /* ALIGNMENT_WORKAROUND || BIGENDIAN */
 
-static int checksum(const uint8_t *buf, size_t len) {
+static bool verify_checksum(const uint8_t *buf, size_t len) {
         uint8_t sum = 0;
         size_t a;
 
         for (a = 0; a < len; a++)
                 sum += buf[a];
-        return (sum == 0);
+        return sum == 0;
 }
 
 /*
@@ -661,7 +661,7 @@ static int smbios3_decode(uint8_t *buf, const char *devmem, bool no_file_offset)
                 return 0;
         }
 
-        if (!checksum(buf, buf[0x06]))
+        if (!verify_checksum(buf, buf[0x06]))
                 return 0;
 
         offset = QWORD(buf + 0x10);
@@ -684,9 +684,9 @@ static int smbios_decode(uint8_t *buf, const char *devmem, bool no_file_offset) 
                 return 0;
         }
 
-        if (!checksum(buf, buf[0x05])
+        if (!verify_checksum(buf, buf[0x05])
             || memcmp(buf + 0x10, "_DMI_", 5) != 0
-            || !checksum(buf + 0x10, 0x0F))
+            || !verify_checksum(buf + 0x10, 0x0F))
                 return 0;
 
         dmi_table(DWORD(buf + 0x18), WORD(buf + 0x16), WORD(buf + 0x1C),
@@ -696,7 +696,7 @@ static int smbios_decode(uint8_t *buf, const char *devmem, bool no_file_offset) 
 }
 
 static int legacy_decode(uint8_t *buf, const char *devmem, bool no_file_offset) {
-        if (!checksum(buf, 0x0F))
+        if (!verify_checksum(buf, 0x0F))
                 return 0;
 
         dmi_table(DWORD(buf + 0x08), WORD(buf + 0x06), WORD(buf + 0x0C),
