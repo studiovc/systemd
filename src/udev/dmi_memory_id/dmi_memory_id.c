@@ -736,11 +736,11 @@ static int run(int argc, char* const* argv) {
         r = read_full_file_full(AT_FDCWD,
                                 arg_source_file ?: SYS_ENTRY_FILE,
                                 0, 0x20, 0, NULL, (char **) &buf, &size);
-        if (r < 0) {
+        if (r < 0)
                 return log_full_errno(!arg_source_file && r == -ENOENT ? LOG_DEBUG : LOG_ERR,
                                       r, "Reading \"%s\" failed: %m",
                                       arg_source_file ?: SYS_ENTRY_FILE);
-        }
+
         if (!arg_source_file) {
                 arg_source_file = SYS_TABLE_FILE;
                 no_file_offset = true;
