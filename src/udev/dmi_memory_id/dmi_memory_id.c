@@ -53,6 +53,7 @@
 #include "build.h"
 #include "fileio.h"
 #include "main-func.h"
+#include "string-util.h"
 #include "unaligned.h"
 #include "udev-util.h"
 
@@ -750,13 +751,13 @@ static int run(int argc, char* const* argv) {
                 no_file_offset = true;
         }
 
-        if (size >= 24 && memcmp(buf, "_SM3_", 5) == 0) {
+        if (size >= 24 && memory_startswith(buf, size, "_SM3_")) {
                 if (smbios3_decode(buf, arg_source_file, no_file_offset))
                         found++;
-        } else if (size >= 31 && memcmp(buf, "_SM_", 4) == 0) {
+        } else if (size >= 31 && memory_startswith(buf, size, "_SM_")) {
                 if (smbios_decode(buf, arg_source_file, no_file_offset))
                         found++;
-        } else if (size >= 15 && memcmp(buf, "_DMI_", 5) == 0) {
+        } else if (size >= 15 && memory_startswith(buf, size, "_DMI_")) {
                 if (legacy_decode(buf, arg_source_file, no_file_offset))
                         found++;
         }
