@@ -486,8 +486,12 @@ static void dmi_decode(const struct dmi_header *h) {
         switch (h->type) {
         case 16: /* 7.17 Physical Memory Array */
                 log_debug("Physical Memory Array");
-                if (h->length < 0x0F) break;
-                if (data[0x05] != 0x03) break; /* 7.17.2, Use == "System Memory" */
+                if (h->length < 0x0F)
+                        break;
+
+                if (data[0x05] != 0x03) /* 7.17.2, Use == "System Memory" */
+                        break;
+
                 log_debug("Use: System Memory");
                 printf("MEMORY_ARRAY_LOCATION=%s\n",
                        dmi_memory_array_location(data[0x04]));
@@ -514,7 +518,9 @@ static void dmi_decode(const struct dmi_header *h) {
                 next_slot_num++;
 
                 log_debug("Memory Device");
-                if (h->length < 0x15) break;
+                if (h->length < 0x15)
+                        break;
+
                 dmi_memory_device_width("MEMORY_DEVICE", "TOTAL_WIDTH", slot_num, WORD(data + 0x08));
                 dmi_memory_device_width("MEMORY_DEVICE", "DATA_WIDTH", slot_num, WORD(data + 0x0A));
                 if (h->length >= 0x20 && WORD(data + 0x0C) == 0x7FFF)
@@ -530,23 +536,35 @@ static void dmi_decode(const struct dmi_header *h) {
                 printf("MEMORY_DEVICE_%u_BANK_LOCATOR=%s\n", slot_num, dmi_string(h, data[0x11]));
                 printf("MEMORY_DEVICE_%u_TYPE=%s\n", slot_num, dmi_memory_device_type(data[0x12]));
                 dmi_memory_device_type_detail(slot_num, WORD(data + 0x13));
-                if (h->length < 0x17) break;
+                if (h->length < 0x17)
+                        break;
+
                 dmi_memory_device_speed("MEMORY_DEVICE", "SPEED_MTS", slot_num, WORD(data + 0x15));
-                if (h->length < 0x1B) break;
+                if (h->length < 0x1B)
+                        break;
+
                 printf("MEMORY_DEVICE_%u_MANUFACTURER=%s\n", slot_num, dmi_string(h, data[0x17]));
                 printf("MEMORY_DEVICE_%u_SERIAL_NUMBER=%s\n", slot_num, dmi_string(h, data[0x18]));
                 printf("MEMORY_DEVICE_%u_ASSET_TAG=%s\n", slot_num, dmi_string(h, data[0x19]));
                 printf("MEMORY_DEVICE_%u_PART_NUMBER=%s\n", slot_num, dmi_string(h, data[0x1A]));
-                if (h->length < 0x1C) break;
+                if (h->length < 0x1C)
+                        break;
+
                 if ((data[0x1B] & 0x0F) != 0)
                         printf("MEMORY_DEVICE_%u_RANK=%u\n", slot_num, data[0x1B] & 0x0F);
-                if (h->length < 0x22) break;
+                if (h->length < 0x22)
+                        break;
+
                 dmi_memory_device_speed("MEMORY_DEVICE", "CONFIGURED_SPEED_MTS", slot_num, WORD(data + 0x20));
-                if (h->length < 0x28) break;
+                if (h->length < 0x28)
+                        break;
+
                 dmi_memory_voltage_value("MEMORY_DEVICE", "MINIMUM_VOLTAGE", slot_num, WORD(data + 0x22));
                 dmi_memory_voltage_value("MEMORY_DEVICE", "MAXIMUM_VOLTAGE", slot_num, WORD(data + 0x24));
                 dmi_memory_voltage_value("MEMORY_DEVICE", "CONFIGURED_VOLTAGE", slot_num, WORD(data + 0x26));
-                if (h->length < 0x34) break;
+                if (h->length < 0x34)
+                        break;
+
                 dmi_memory_technology(slot_num, data[0x28]);
                 dmi_memory_operating_mode_capability(slot_num, WORD(data + 0x29));
                 printf("MEMORY_DEVICE_%u_FIRMWARE_VERSION=%s\n", slot_num, dmi_string(h, data[0x2B]));
@@ -556,13 +574,21 @@ static void dmi_decode(const struct dmi_header *h) {
                                            slot_num, WORD(data + 0x30));
                 dmi_memory_product_id("MEMORY_DEVICE", "MEMORY_SUBSYSTEM_CONTROLLER_PRODUCT_ID",
                                       slot_num, WORD(data + 0x32));
-                if (h->length < 0x3C) break;
+                if (h->length < 0x3C)
+                        break;
+
                 dmi_memory_size("MEMORY_DEVICE", "NON_VOLATILE_SIZE", slot_num, QWORD(data + 0x34));
-                if (h->length < 0x44) break;
+                if (h->length < 0x44)
+                        break;
+
                 dmi_memory_size("MEMORY_DEVICE", "VOLATILE_SIZE", slot_num, QWORD(data + 0x3C));
-                if (h->length < 0x4C) break;
+                if (h->length < 0x4C)
+                        break;
+
                 dmi_memory_size("MEMORY_DEVICE", "CACHE_SIZE", slot_num, QWORD(data + 0x44));
-                if (h->length < 0x54) break;
+                if (h->length < 0x54)
+                        break;
+
                 dmi_memory_size("MEMORY_DEVICE", "LOGICAL_SIZE", slot_num, QWORD(data + 0x4C));
 
                 break;
