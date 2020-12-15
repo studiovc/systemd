@@ -57,7 +57,8 @@
 
 #define SUPPORTED_SMBIOS_VER 0x030300
 
-#define FLAG_NO_FILE_OFFSET     (1 << 0)
+static bool arg_no_file_offset = false;
+
 #define FLAG_STOP_AT_EOT        (1 << 1)
 #define FLAG_FROM_DUMP          (1 << 2)
 static uint32_t opt_flags = 0;
@@ -644,7 +645,7 @@ static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem
          * parse error.
          */
         r = read_full_file_full(AT_FDCWD, devmem,
-                        flags & FLAG_NO_FILE_OFFSET ? 0 : base, len,
+                        arg_no_file_offset ? 0 : base, len,
                         0, NULL, (char **) &buf, &size);
         if (r < 0) {
                 log_error_errno(r, "Failed to read table, sorry: %m");
@@ -670,7 +671,7 @@ static int smbios3_decode(uint8_t *buf, const char *devmem, uint32_t flags) {
                 return 0;
 
         offset = QWORD(buf + 0x10);
-        if (!(flags & FLAG_NO_FILE_OFFSET) && offset.h && sizeof(off_t) < 8) {
+        if (!arg_no_file_offset && offset.h && sizeof(off_t) < 8) {
                 log_error("64-bit addresses not supported, sorry.");
                 return 0;
         }
@@ -775,7 +776,7 @@ static int run(int argc, char* const* argv) {
         }
         if (!(opt_flags & FLAG_FROM_DUMP)) {
                 dump_file = SYS_TABLE_FILE;
-                flags = FLAG_NO_FILE_OFFSET;
+                arg_no_file_offset = true;
         }
 
         if (size >= 24 && memcmp(buf, "_SM3_", 5) == 0) {
