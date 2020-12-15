@@ -57,7 +57,6 @@
 
 #define SUPPORTED_SMBIOS_VER 0x030300
 
-static bool arg_no_file_offset = false;
 static const char *source_file = NULL;
 
 #define OUT_OF_SPEC_STR "<OUT OF SPEC>"
@@ -625,7 +624,8 @@ static void dmi_table_decode(uint8_t *buf, uint32_t len, uint16_t num, bool stop
         }
 }
 
-static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem, bool stop_at_eot) {
+static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem,
+                bool stop_at_eot, bool no_file_offset) {
         _cleanup_free_ uint8_t *buf = NULL;
         size_t size;
         int r;
@@ -639,7 +639,7 @@ static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem
          * parse error.
          */
         r = read_full_file_full(AT_FDCWD, devmem,
-                        arg_no_file_offset ? 0 : base, len,
+                        no_file_offset ? 0 : base, len,
                         0, NULL, (char **) &buf, &size);
         if (r < 0) {
                 log_error_errno(r, "Failed to read table, sorry: %m");
@@ -651,7 +651,7 @@ static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem
 }
 
 /* Same thing for SMBIOS3 entry points */
-static int smbios3_decode(uint8_t *buf, const char *devmem) {
+static int smbios3_decode(uint8_t *buf, const char *devmem, bool no_file_offset) {
         ULargeInteger offset;
 
         /* Don't let checksum run beyond the buffer */
@@ -665,18 +665,18 @@ static int smbios3_decode(uint8_t *buf, const char *devmem) {
                 return 0;
 
         offset = QWORD(buf + 0x10);
-        if (!arg_no_file_offset && offset.h && sizeof(off_t) < 8) {
+        if (!no_file_offset && offset.h && sizeof(off_t) < 8) {
                 log_error("64-bit addresses not supported, sorry.");
                 return 0;
         }
 
         dmi_table(((off_t)offset.h << 32) | offset.l,
-                        DWORD(buf + 0x0C), 0, devmem, true);
+                        DWORD(buf + 0x0C), 0, devmem, true, no_file_offset);
 
         return 1;
 }
 
-static int smbios_decode(uint8_t *buf, const char *devmem) {
+static int smbios_decode(uint8_t *buf, const char *devmem, bool no_file_offset) {
         /* Don't let checksum run beyond the buffer */
         if (buf[0x05] > 0x20) {
                 log_error("Entry point length too large (%u bytes, expected %u).",
@@ -690,17 +690,17 @@ static int smbios_decode(uint8_t *buf, const char *devmem) {
                 return 0;
 
         dmi_table(DWORD(buf + 0x18), WORD(buf + 0x16), WORD(buf + 0x1C),
-                  devmem, false);
+                  devmem, false, no_file_offset);
 
         return 1;
 }
 
-static int legacy_decode(uint8_t *buf, const char *devmem) {
+static int legacy_decode(uint8_t *buf, const char *devmem, bool no_file_offset) {
         if (!checksum(buf, 0x0F))
                 return 0;
 
         dmi_table(DWORD(buf + 0x08), WORD(buf + 0x06), WORD(buf + 0x0C),
-                  devmem, false);
+                  devmem, false, no_file_offset);
 
         return 1;
 }
@@ -746,6 +746,7 @@ static int run(int argc, char* const* argv) {
         int found = 0;
         size_t size;
         _cleanup_free_ uint8_t *buf = NULL;
+        bool no_file_offset = false;
 
         log_set_target(LOG_TARGET_AUTO);
         udev_parse_config();
@@ -768,17 +769,17 @@ static int run(int argc, char* const* argv) {
         }
         if (!source_file) {
                 source_file = SYS_TABLE_FILE;
-                arg_no_file_offset = true;
+                no_file_offset = true;
         }
 
         if (size >= 24 && memcmp(buf, "_SM3_", 5) == 0) {
-                if (smbios3_decode(buf, source_file))
+                if (smbios3_decode(buf, source_file, no_file_offset))
                         found++;
         } else if (size >= 31 && memcmp(buf, "_SM_", 4) == 0) {
-                if (smbios_decode(buf, source_file))
+                if (smbios_decode(buf, source_file, no_file_offset))
                         found++;
         } else if (size >= 15 && memcmp(buf, "_DMI_", 5) == 0) {
-                if (legacy_decode(buf, source_file))
+                if (legacy_decode(buf, source_file, no_file_offset))
                         found++;
         }
 
