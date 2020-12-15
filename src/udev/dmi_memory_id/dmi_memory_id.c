@@ -216,7 +216,7 @@ static const char *dmi_memory_array_location(uint8_t code) {
                 "CXL Flexbus 1.0" /* 0xA4 */
         };
 
-        if (code >= 0x01 && code < ELEMENTSOF(location))
+        if (code < ELEMENTSOF(location) && code[location])
                 return location[code];
         if (code >= 0xA0 && code < ELEMENTSOF(location_0xA0))
                 return location_0xA0[code];
@@ -235,7 +235,7 @@ static const char *dmi_memory_array_ec_type(uint8_t code) {
                 "CRC" /* 0x07 */
         };
 
-        if (code >= 0x01 && code < ELEMENTSOF(type))
+        if (code < ELEMENTSOF(type) && code[type])
                 return type[code];
         return OUT_OF_SPEC_STR;
 }
@@ -308,7 +308,7 @@ static const char *dmi_memory_device_form_factor(uint8_t code) {
                 "Die" /* 0x10 */
         };
 
-        if (code >= 0x01 && code < ELEMENTSOF(form_factor))
+        if (code < ELEMENTSOF(form_factor) && code[form_factor])
                 return form_factor[code];
         return OUT_OF_SPEC_STR;
 }
@@ -358,7 +358,7 @@ static const char *dmi_memory_device_type(uint8_t code) {
                 "HBM2" /* 0x21 */
         };
 
-        if (code >= 0x01 && code < ELEMENTSOF(type))
+        if (code < ELEMENTSOF(type) && code[type])
                 return type[code];
         return OUT_OF_SPEC_STR;
 }
@@ -418,7 +418,7 @@ static void dmi_memory_technology(unsigned slot_num, uint8_t code) {
                 "Intel Optane DC persistent memory" /* 0x07 */
         };
         printf("MEMORY_DEVICE_%u_MEMORY_TECHNOLOGY=%s\n", slot_num,
-                        code >= 0x01 && code < ELEMENTSOF(technology) ? technology[code] : OUT_OF_SPEC_STR);
+                        code < ELEMENTSOF(technology) && code[technology] ? technology[code] : OUT_OF_SPEC_STR);
 }
 
 static void dmi_memory_operating_mode_capability(unsigned slot_num, uint16_t code) {
