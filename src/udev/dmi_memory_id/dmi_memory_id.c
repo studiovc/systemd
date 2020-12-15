@@ -66,11 +66,6 @@ static const char *arg_source_file = NULL;
 #define SYS_ENTRY_FILE SYS_FIRMWARE_DIR "/smbios_entry_point"
 #define SYS_TABLE_FILE SYS_FIRMWARE_DIR "/DMI"
 
-/* Use memory alignment workaround or not */
-#ifdef __ia64__
-#define ALIGNMENT_WORKAROUND
-#endif
-
 struct dmi_header {
         uint8_t type;
         uint8_t length;
