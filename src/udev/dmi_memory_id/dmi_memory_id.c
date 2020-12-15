@@ -58,11 +58,9 @@
 #define SUPPORTED_SMBIOS_VER 0x030300
 
 static bool arg_no_file_offset = false;
+static const char *source_file = NULL;
 
 #define FLAG_STOP_AT_EOT        (1 << 1)
-#define FLAG_FROM_DUMP          (1 << 2)
-static uint32_t opt_flags = 0;
-const char *dump_file = NULL;
 
 #define OUT_OF_SPEC_STR "<OUT OF SPEC>"
 #define SYS_FIRMWARE_DIR "/sys/firmware/dmi/tables"
@@ -657,7 +655,7 @@ static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem
 }
 
 /* Same thing for SMBIOS3 entry points */
-static int smbios3_decode(uint8_t *buf, const char *devmem, uint32_t flags) {
+static int smbios3_decode(uint8_t *buf, const char *devmem) {
         ULargeInteger offset;
 
         /* Don't let checksum run beyond the buffer */
@@ -677,12 +675,12 @@ static int smbios3_decode(uint8_t *buf, const char *devmem, uint32_t flags) {
         }
 
         dmi_table(((off_t)offset.h << 32) | offset.l,
-                        DWORD(buf + 0x0C), 0, devmem, flags | FLAG_STOP_AT_EOT);
+                        DWORD(buf + 0x0C), 0, devmem, FLAG_STOP_AT_EOT);
 
         return 1;
 }
 
-static int smbios_decode(uint8_t *buf, const char *devmem, uint32_t flags) {
+static int smbios_decode(uint8_t *buf, const char *devmem) {
         /* Don't let checksum run beyond the buffer */
         if (buf[0x05] > 0x20) {
                 log_error("Entry point length too large (%u bytes, expected %u).",
@@ -696,17 +694,17 @@ static int smbios_decode(uint8_t *buf, const char *devmem, uint32_t flags) {
                 return 0;
 
         dmi_table(DWORD(buf + 0x18), WORD(buf + 0x16), WORD(buf + 0x1C),
-                  devmem, flags);
+                  devmem, 0);
 
         return 1;
 }
 
-static int legacy_decode(uint8_t *buf, const char *devmem, uint32_t flags) {
+static int legacy_decode(uint8_t *buf, const char *devmem) {
         if (!checksum(buf, 0x0F))
                 return 0;
 
         dmi_table(DWORD(buf + 0x08), WORD(buf + 0x06), WORD(buf + 0x0C),
-                  devmem, flags);
+                  devmem, 0);
 
         return 1;
 }
@@ -728,8 +726,7 @@ static int parse_argv(int argc, char * const *argv) {
 
                 switch (option) {
                 case 'F':
-                        opt_flags |= FLAG_FROM_DUMP;
-                        dump_file = optarg;
+                        source_file = optarg;
                         break;
                 case 'h':
                         printf("Usage: %s [options]\n"
@@ -753,7 +750,6 @@ static int run(int argc, char* const* argv) {
         int found = 0;
         size_t size;
         _cleanup_free_ uint8_t *buf = NULL;
-        uint32_t flags = 0;
 
         log_set_target(LOG_TARGET_AUTO);
         udev_parse_config();
@@ -766,27 +762,27 @@ static int run(int argc, char* const* argv) {
 
         /* Read from dump if so instructed */
         r = read_full_file_full(AT_FDCWD,
-                                opt_flags & FLAG_FROM_DUMP ? dump_file : SYS_ENTRY_FILE,
+                                source_file ? source_file : SYS_ENTRY_FILE,
                                 0, 0x20, 0, NULL, (char **) &buf, &size);
         if (r < 0) {
-                return log_full_errno(!dump_file && r == -ENOENT ? LOG_DEBUG : LOG_ERR,
+                return log_full_errno(!source_file && r == -ENOENT ? LOG_DEBUG : LOG_ERR,
                                       r, "Reading \"%s\" failed: %m",
-                                      dump_file ? dump_file : SYS_ENTRY_FILE);
+                                      source_file ? source_file : SYS_ENTRY_FILE);
                 return EXIT_FAILURE;
         }
-        if (!(opt_flags & FLAG_FROM_DUMP)) {
-                dump_file = SYS_TABLE_FILE;
+        if (!source_file) {
+                source_file = SYS_TABLE_FILE;
                 arg_no_file_offset = true;
         }
 
         if (size >= 24 && memcmp(buf, "_SM3_", 5) == 0) {
-                if (smbios3_decode(buf, dump_file, flags))
+                if (smbios3_decode(buf, source_file))
                         found++;
         } else if (size >= 31 && memcmp(buf, "_SM_", 4) == 0) {
-                if (smbios_decode(buf, dump_file, flags))
+                if (smbios_decode(buf, source_file))
                         found++;
         } else if (size >= 15 && memcmp(buf, "_DMI_", 5) == 0) {
-                if (legacy_decode(buf, dump_file, flags))
+                if (legacy_decode(buf, source_file))
                         found++;
         }
 
