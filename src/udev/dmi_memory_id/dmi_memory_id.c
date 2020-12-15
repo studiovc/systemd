@@ -764,11 +764,13 @@ static int run(int argc, char* const* argv) {
                 return EXIT_FAILURE;
 
         /* Read from dump if so instructed */
-        if (read_full_file_full(AT_FDCWD,
+        r = read_full_file_full(AT_FDCWD,
                                 opt_flags & FLAG_FROM_DUMP ? dump_file : SYS_ENTRY_FILE,
-                                0, 0x20, 0, NULL, (char **) &buf, &size) < 0) {
-                log_debug_errno(errno, "reading DMI from %s failed: %m",
-                                opt_flags & FLAG_FROM_DUMP ? dump_file : SYS_ENTRY_FILE);
+                                0, 0x20, 0, NULL, (char **) &buf, &size);
+        if (r < 0) {
+                return log_full_errno(!dump_file && r == -ENOENT ? LOG_DEBUG : LOG_ERR,
+                                      r, "Reading \"%s\" failed: %m",
+                                      dump_file ? dump_file : SYS_ENTRY_FILE);
                 return EXIT_FAILURE;
         }
         if (!(opt_flags & FLAG_FROM_DUMP)) {
