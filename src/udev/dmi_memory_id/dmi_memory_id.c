@@ -650,7 +650,7 @@ static void dmi_table_decode(uint8_t *buf, uint32_t len, uint16_t num, bool stop
         }
 }
 
-static void dmi_table(off_t base, uint32_t len, uint16_t num, const char *devmem,
+static void dmi_table(int64_t base, uint32_t len, uint16_t num, const char *devmem,
                 bool stop_at_eot, bool no_file_offset) {
         _cleanup_free_ uint8_t *buf = NULL;
         size_t size;
@@ -691,12 +691,12 @@ static int smbios3_decode(uint8_t *buf, const char *devmem, bool no_file_offset)
                 return 0;
 
         offset = QWORD(buf + 0x10);
-        if (!no_file_offset && offset.h && sizeof(off_t) < 8) {
+        if (!no_file_offset && offset.h && sizeof(int64_t) < 8) {
                 log_error("64-bit addresses not supported, sorry.");
                 return 0;
         }
 
-        dmi_table(((off_t)offset.h << 32) | offset.l,
+        dmi_table(((int64_t)offset.h << 32) | offset.l,
                         DWORD(buf + 0x0C), 0, devmem, true, no_file_offset);
 
         return 1;
